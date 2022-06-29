@@ -4,106 +4,82 @@ import MoviesList from "./Movies/MoviesList";
 import Header from "./Header/Header";
 import { API_URL, API_KEY_3, fetchApi } from "../api/api";
 import Cookies from "universal-cookie";
+import { useEffect, useState } from "react";
 
 const cookies = new Cookies();
+function App(props) {
+  const [user, setUser] = useState(null)
+  const [session_id, setSessionId] = useState(null)
+  const [filters, setFilters] = useState({
+    sort_by: "popularity.desc",
+    primary_release_year: "2018",
+    with_genres: []
+  })
+  const [page, setPage] = useState(1)
+  const [total_pages, setTotalPages] = useState("")
 
-export default class App extends React.Component {
-  constructor() {
-    super();
-
-    this.state = {
-      user: null,
-      session_id: null,
-      filters: {
-        sort_by: "popularity.desc",
-        primary_release_year: "2018",
-        with_genres: []
-      },
-      page: 1,
-      total_pages: ""
-    };
-  }
-
-  updateUser = user => {
-    this.setState({
-      user
-    });
-  };
-
-  updateSessionId = session_id => {
+  const updateSessionId = session_id => {
     cookies.set("session_id", session_id, {
       path: "/",
       maxAge: 2592000
     });
-    this.setState({
-      session_id
-    });
+    setSessionId(session_id)
   };
 
-  onChangeFilters = event => {
+  const onChangeFilters = event => {
     const value = event.target.value;
     const name = event.target.name;
-    this.setState(prevState => ({
-      filters: {
-        ...prevState.filters,
-        [name]: value
-      }
-    }));
+    setFilters({...filters, [name]: value});
   };
 
-  onChangePagination = ({ page, total_pages = this.state.total_pages }) => {
-    this.setState({
-      page,
-      total_pages
-    });
+  const onChangePagination = ({ page, total_pages }) => {
+    setPage(page)
+    setTotalPages(total_pages)
   };
-
-  componentDidMount() {
+  useEffect(() => {
     const session_id = cookies.get("session_id");
     if (session_id) {
       fetchApi(
         `${API_URL}/account?api_key=${API_KEY_3}&session_id=${session_id}`
       ).then(user => {
-        this.updateUser(user);
+        setUser(user);
       });
     }
-  }
+  }, [])
 
-  render() {
-    const { filters, page, total_pages, user } = this.state;
-    return (
-      <div>
-        <Header
-          user={user}
-          updateUser={this.updateUser}
-          updateSessionId={this.updateSessionId}
-        />
-        <div className="container">
-          <div className="row mt-4">
-            <div className="col-4">
-              <div className="card w-100">
-                <div className="card-body">
-                  <h3>Фильтры:</h3>
-                  <Filters
-                    page={page}
-                    total_pages={total_pages}
-                    filters={filters}
-                    onChangeFilters={this.onChangeFilters}
-                    onChangePagination={this.onChangePagination}
-                  />
-                </div>
+  return (
+    <div>
+      <Header
+        user={user}
+        updateUser={setUser}
+        updateSessionId={updateSessionId}
+      />
+      <div className="container">
+        <div className="row mt-4">
+          <div className="col-4">
+            <div className="card w-100">
+              <div className="card-body">
+                <h3>Фильтры:</h3>
+                <Filters
+                  page={page}
+                  total_pages={total_pages}
+                  filters={filters}
+                  onChangeFilters={onChangeFilters}
+                  onChangePagination={onChangePagination}
+                />
               </div>
             </div>
-            <div className="col-8">
-              <MoviesList
-                filters={filters}
-                page={page}
-                onChangePagination={this.onChangePagination}
-              />
-            </div>
+          </div>
+          <div className="col-8">
+            <MoviesList
+              filters={filters}
+              page={page}
+              onChangePagination={onChangePagination}
+            />
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
+export default App
